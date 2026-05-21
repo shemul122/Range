@@ -251,13 +251,42 @@
     </div>
 
     <script>
-        // Using corsproxy.io which works perfectly in browsers (GitHub Pages)
-        const API_URL = "https://corsproxy.io/?" + encodeURIComponent("http://185.190.142.81/api/user/console-log");
+        const RAW_API = "http://185.190.142.81/api/user/console-log";
         const BOT_LINK = "https://t.me/sheetshort_x_number_bot";
         const CSV_URL = "https://docs.google.com/spreadsheets/d/1fIpvq_wqJa-tuB8q-km2iaH16JuZdJMcfGAilR9W5Yw/export?format=csv";
 
+        // Multiple CORS proxies as fallbacks
+        const PROXIES = [
+            url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            url => `https://api.codetabs.com/v1/proxy/?quest=${url}`,
+        ];
+
         // Auto-fetch on load
         window.onload = fetchRanges;
+
+        async function fetchWithProxy(token) {
+            for (let i = 0; i < PROXIES.length; i++) {
+                const proxyUrl = PROXIES[i](RAW_API);
+                try {
+                    const resp = await fetch(proxyUrl, {
+                        method: "GET",
+                        headers: {
+                            "X-Session-Token": token,
+                            "Accept": "application/json"
+                        },
+                        signal: AbortSignal.timeout(8000)
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        return data;
+                    }
+                } catch (e) {
+                    // Try next proxy
+                }
+            }
+            throw new Error("All proxies failed. The API server may be down.");
+        }
 
         async function fetchRanges() {
             const container = document.getElementById('rangesContainer');
@@ -272,13 +301,7 @@
 
             try {
                 // 1. Fetch Token from Google Sheets CSV
-                let csvResponse;
-                try {
-                    csvResponse = await fetch(CSV_URL);
-                } catch (e) {
-                    throw new Error("CSV Fetch blocked: " + e.message);
-                }
-                
+                const csvResponse = await fetch(CSV_URL);
                 if (!csvResponse.ok) throw new Error("Failed to load token from database.");
                 const csvText = await csvResponse.text();
                 
@@ -295,24 +318,8 @@
 
                 if (!token) throw new Error("Token not found in database.");
 
-                // Note: If running on HTTPS, this HTTP request will be blocked by Mixed Content.
-                // You must either run this on an HTTP server, or use an HTTPS proxy for the API.
-                let response;
-                try {
-                    response = await fetch(API_URL, {
-                        method: "GET",
-                        headers: {
-                            "X-Session-Token": token,
-                            "Accept": "application/json"
-                        }
-                    });
-                } catch (e) {
-                    throw new Error("API Fetch failed: " + e.message + " (Usually means the Proxy blocked it or the server is down)");
-                }
-
-                if (!response.ok) throw new Error("Failed to fetch data. Check your token.");
-
-                const rawData = await response.json();
+                // 2. Fetch ranges using proxy fallback
+                const rawData = await fetchWithProxy(token);
                 
                 let logs = [];
                 if (rawData.data && Array.isArray(rawData.data.logs)) {
