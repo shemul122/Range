@@ -251,8 +251,8 @@
     </div>
 
     <script>
-        // Using api.codetabs.com CORS proxy which successfully forwards headers and circumvents mixed content blocks
-        const API_URL = "https://api.codetabs.com/v1/proxy/?quest=http://185.190.142.81/api/user/console-log";
+        // Using corsproxy.io which works perfectly in browsers (GitHub Pages)
+        const API_URL = "https://corsproxy.io/?" + encodeURIComponent("http://185.190.142.81/api/user/console-log");
         const BOT_LINK = "https://t.me/sheetshort_x_number_bot";
         const CSV_URL = "https://docs.google.com/spreadsheets/d/1fIpvq_wqJa-tuB8q-km2iaH16JuZdJMcfGAilR9W5Yw/export?format=csv";
 
@@ -276,7 +276,7 @@
                 try {
                     csvResponse = await fetch(CSV_URL);
                 } catch (e) {
-                    throw new Error("CSV Fetch blocked by browser. You cannot run this directly from a file:// URL. Please host it online.");
+                    throw new Error("CSV Fetch blocked: " + e.message);
                 }
                 
                 if (!csvResponse.ok) throw new Error("Failed to load token from database.");
@@ -303,10 +303,11 @@
                         method: "GET",
                         headers: {
                             "X-Session-Token": token,
+                            "Accept": "application/json"
                         }
                     });
                 } catch (e) {
-                    throw new Error("API Fetch blocked by browser. Proxy or target server rejected the request from local file.");
+                    throw new Error("API Fetch failed: " + e.message + " (Usually means the Proxy blocked it or the server is down)");
                 }
 
                 if (!response.ok) throw new Error("Failed to fetch data. Check your token.");
