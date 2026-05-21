@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SheetShort Active Ranges</title>
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f0f13;
+            --card-bg: #1c1c24;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --text-main: #f8f9fa;
+            --text-muted: #9ca3af;
+            --accent-green: #10b981;
+            --border: #2d2d3a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .controls {
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .controls input {
+            flex: 1;
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .controls input:focus {
+            border-color: var(--primary);
+        }
+
+        .controls button {
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: none;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        .controls button:active {
+            transform: scale(0.96);
+        }
+
+        .controls button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .ranges-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--accent-green);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: var(--accent-green);
+            font-size: 16px;
+        }
+
+        .card-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .card-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .card-row .emoji {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .card-row code {
+            background-color: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #e2e8f0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-copy {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--text-main);
+        }
+
+        .btn-copy:hover {
+            background-color: rgba(255,255,255,0.15);
+        }
+
+        .btn-bot {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-bot:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .loader {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>SheetShort Web App</h1>
+        <p>Live Active Number Ranges</p>
+    </div>
+
+    <div class="controls" style="display: none;">
+        <input type="text" id="tokenInput" placeholder="Enter X-Session-Token" />
+        <button onclick="fetchRanges()">Fetch</button>
+    </div>
+
+    <div class="error" id="errorBox"></div>
+    <div class="loader" id="loader"></div>
+    
+    <div class="ranges-container" id="rangesContainer">
+        <!-- Cards will be injected here -->
+    </div>
+
+    <script>
+        // Using api.codetabs.com CORS proxy which successfully forwards headers and circumvents mixed content blocks
+        const API_URL = "https://api.codetabs.com/v1/proxy/?quest=http://185.190.142.81/api/user/console-log";
+        const BOT_LINK = "https://t.me/sheetshort_x_number_bot";
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/1fIpvq_wqJa-tuB8q-km2iaH16JuZdJMcfGAilR9W5Yw/export?format=csv";
+
+        // Auto-fetch on load
+        window.onload = fetchRanges;
+
+        async function fetchRanges() {
+            const container = document.getElementById('rangesContainer');
+            const loader = document.getElementById('loader');
+            const errorBox = document.getElementById('errorBox');
+
+            container.innerHTML = '';
+            errorBox.style.display = 'none';
+            loader.style.display = 'block';
+
+            let token = "";
+
+            try {
+                // 1. Fetch Token from Google Sheets CSV
+                let csvResponse;
+                try {
+                    csvResponse = await fetch(CSV_URL);
+                } catch (e) {
+                    throw new Error("CSV Fetch blocked by browser. You cannot run this directly from a file:// URL. Please host it online.");
+                }
+                
+                if (!csvResponse.ok) throw new Error("Failed to load token from database.");
+                const csvText = await csvResponse.text();
+                
+                // Parse CSV (Looking for X-Session-Token, <token>)
+                const lines = csvText.split('\n');
+                for (let line of lines) {
+                    if (line.includes("X-Session-Token")) {
+                        const parts = line.split(',');
+                        if (parts.length > 1) {
+                            token = parts[1].trim();
+                        }
+                    }
+                }
+
+                if (!token) throw new Error("Token not found in database.");
+
+                // Note: If running on HTTPS, this HTTP request will be blocked by Mixed Content.
+                // You must either run this on an HTTP server, or use an HTTPS proxy for the API.
+                let response;
+                try {
+                    response = await fetch(API_URL, {
+                        method: "GET",
+                        headers: {
+                            "X-Session-Token": token,
+                        }
+                    });
+                } catch (e) {
+                    throw new Error("API Fetch blocked by browser. Proxy or target server rejected the request from local file.");
+                }
+
+                if (!response.ok) throw new Error("Failed to fetch data. Check your token.");
+
+                const rawData = await response.json();
+                
+                let logs = [];
+                if (rawData.data && Array.isArray(rawData.data.logs)) {
+                    logs = rawData.data.logs;
+                } else if (rawData.data && Array.isArray(rawData.data.messages)) {
+                    logs = rawData.data.messages;
+                } else if (Array.isArray(rawData.logs)) {
+                    logs = rawData.logs;
+                } else if (Array.isArray(rawData)) {
+                    logs = rawData;
+                }
+
+                if (logs.length === 0) {
+                    showError("No active ranges found at the moment.");
+                    loader.style.display = 'none';
+                    return;
+                }
+
+                // Process unique ranges
+                const seen = new Set();
+                const uniqueLogs = [];
+
+                for (let log of logs) {
+                    const number = log.number || "";
+                    const service = log.service || log.app_name || "Unknown";
+                    const uid = number + "_" + service;
+                    
+                    if (!seen.has(uid)) {
+                        seen.add(uid);
+                        uniqueLogs.push(log);
+                    }
+                }
+
+                // Render Cards
+                uniqueLogs.slice(0, 50).forEach(log => {
+                    const number = log.number || "";
+                    const service = escapeHTML(log.service || log.app_name || "Unknown");
+                    const msg = escapeHTML(log.message || log.sms || "");
+                    
+                    const country = getCountryInfo(number);
+                    const range = extractRange(number);
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <span>✅</span> New Active Range
+                        </div>
+                        <div class="card-row">
+                            <span class="emoji">🌍</span> <b>Country:</b> &nbsp; ${country.flag} ${country.name}
+                        </div>
+                        <div class="card-row">
+                            <span class="emoji">📊</span> <b>Range:</b> &nbsp; <code>${range}</code>
+                        </div>
+                        <div class="card-row">
+                            <span class="emoji">🔵</span> <b>Service:</b> &nbsp; ${service}
+                        </div>
+                        <div class="card-row">
+                            <span class="emoji">📩</span> <b>Full SMS:</b> &nbsp; ${msg}
+                        </div>
+                        <div class="button-group">
+                            <button class="btn-action btn-copy" onclick="copyToClipboard('${range}', this)">
+                                📋 Copy Range
+                            </button>
+                            <a href="${BOT_LINK}" target="_blank" class="btn-action btn-bot">
+                                📱 Get Number
+                            </a>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+
+            } catch (err) {
+                showError("API Error: " + err.message);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function extractRange(numStr) {
+            let cleaned = String(numStr).replace(/^\+/, '').trim();
+            if (cleaned.length >= 4) {
+                return cleaned.slice(0, -3) + "XXX";
+            }
+            return cleaned + "XXX";
+        }
+
+        function showError(msg) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.textContent = msg;
+            errorBox.style.display = 'block';
+        }
+
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = "✅ Copied!";
+                setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+            });
+        }
+
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Country Mapping Logic (Simplified version of Bot's DB)
+        function getCountryInfo(number) {
+            let numStr = String(number).replace(/\D/g, '');
+            const cData = {
+                "1": ["USA/Canada", "US"], "7": ["Russia", "RU"], "44": ["UK", "GB"],
+                "62": ["Indonesia", "ID"], "86": ["China", "CN"], "91": ["India", "IN"],
+                "880": ["Bangladesh", "BD"], "232": ["Sierra Leone", "SL"], "234": ["Nigeria", "NG"]
+            };
+
+            for (let i = 4; i >= 1; i--) {
+                let code = numStr.substring(0, i);
+                if (cData[code]) {
+                    let name = cData[code][0];
+                    let iso = cData[code][1];
+                    let flag = String.fromCodePoint(...iso.split('').map(c => c.charCodeAt(0) + 127397));
+                    return { name: name, flag: flag };
+                }
+            }
+            return { name: "Unknown", flag: "🌍" };
+        }
+    </script>
+</body>
+</html>
